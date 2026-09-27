@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EMR Anomaly Detection — Live Demo</title>
+<style>
+  :root{--teal:#028090;--tealdk:#01565f;--ink:#1e293b;--mut:#64748b;--bg:#f1f5f9;
+        --ok:#2e7d32;--bad:#c0392b;--card:#ffffff;--tint:#eaf5f6}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Calibri,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--tealdk);color:#fff;padding:14px 28px;display:flex;justify-content:space-between;align-items:center}
+  header h1{font-size:19px;font-weight:600}
+  header .sub{color:#8fd6dd;font-size:12px}
+  nav{display:flex;gap:6px;background:#fff;padding:8px 28px;border-bottom:1px solid #e2e8f0}
+  nav button{border:0;background:transparent;padding:9px 16px;font-size:14px;cursor:pointer;border-radius:8px;color:var(--mut);font-weight:600}
+  nav button.active{background:var(--tint);color:var(--tealdk)}
+  main{padding:20px 28px;max-width:1240px;margin:0 auto}
+  .grid{display:grid;gap:16px}
+  .cols-3{grid-template-columns:340px 1fr 320px}
+  .card{background:var(--card);border:1px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .card h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:10px}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  button.act{background:var(--teal);color:#fff;border:0;padding:9px 14px;border-radius:8px;font-size:13.5px;cursor:pointer;font-weight:600}
+  button.act.gray{background:#64748b} button.act.red{background:var(--bad)} button.act.amber{background:#b45f06}
+  button.act:disabled{opacity:.5;cursor:default}
+  select,input{padding:7px 9px;border:1px solid #cbd5e1;border-radius:7px;font-size:13.5px;width:100%}
+  table.kv{width:100%;font-size:13px;border-collapse:collapse}
+  table.kv td{padding:3.5px 4px;border-bottom:1px solid #f1f5f9}
+  table.kv td:first-child{color:var(--mut)}
+  table.kv td:last-child{text-align:right;font-weight:600}
+  .banner{padding:14px;border-radius:10px;font-weight:700;font-size:16px;text-align:center;margin-bottom:12px}
+  .banner.ok{background:#e8f5e9;color:var(--ok)} .banner.bad{background:#fdecea;color:var(--bad)}
+  .banner.err{background:#fff3e0;color:#b45f06}
+  .step{display:flex;justify-content:space-between;font-size:13px;padding:7px 10px;border-left:3px solid var(--teal);background:var(--tint);border-radius:0 7px 7px 0;margin-bottom:6px}
+  .step .ms{color:var(--mut)}
+  .mbar{margin-bottom:9px}
+  .mbar .lbl{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px}
+  .mbar .track{background:#e2e8f0;border-radius:6px;height:14px;overflow:hidden}
+  .mbar .fill{height:100%;border-radius:6px;transition:width .4s}
+  .truth{font-size:12.5px;color:var(--mut);text-align:center;margin-top:8px}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:700}
+  .pill.ok{background:#e8f5e9;color:var(--ok)} .pill.bad{background:#fdecea;color:var(--bad)}
+  .big{font-size:30px;font-weight:800;color:var(--teal);text-align:center}
+  .big small{display:block;font-size:11.5px;color:var(--mut);font-weight:400;margin-top:2px}
+  .statrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .runtbl{width:100%;font-size:12.5px;border-collapse:collapse;margin-top:6px}
+  .runtbl th{font-size:11px;color:var(--mut);text-align:right;padding:4px;border-bottom:1px solid #e2e8f0}
+  .runtbl th:first-child{text-align:left}
+  .runtbl td{padding:4px;text-align:right;border-bottom:1px solid #f1f5f9}
+  .runtbl td:first-child{text-align:left;font-weight:600}
+  .runtbl tr.best td{background:var(--tint)}
+  canvas{width:100%}
+  h2.sec{font-size:17px;margin:6px 0 14px}
+  .cols-2{grid-template-columns:1fr 1fr}
+  .verdict{background:var(--tealdk);color:#fff;border-radius:12px;padding:18px}
+  .verdict h3{color:#8fd6dd;margin-bottom:8px;font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+  .verdict li{margin:6px 0 6px 18px;font-size:14px}
+  form.custom{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  form.custom label{font-size:11.5px;color:var(--mut);display:block;margin-bottom:3px}
+  .note{font-size:12.5px;color:var(--mut);margin-top:10px}
+  .flash{animation:flash .5s} @keyframes flash{0%{background:#fef9c3}100%{background:transparent}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>AI-Driven EMR — Real-Time Anomaly Detection Demo</h1>
+  <div class="sub">Live middleware: JWT auth → RBAC → feature build → 4-model inference &nbsp;·&nbsp; Suvechchha Subedi, Purbanchal University</div></div>
+  <div style="text-align:right"><div class="big" id="reqCount" style="font-size:24px">0<small>records processed</small></div></div>
+</header>
+<nav>
+  <button class="active" data-tab="live">Live Feed</button>
+  <button data-tab="why">Why XGBoost?</button>
+  <button data-tab="custom">Custom Record</button>
+</nav>
+<main>
+
+<!-- ================= LIVE ================= -->
+<section id="tab-live">
+  <div class="grid cols-3">
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <h3>1 · Feed data</h3>
+        <div class="btnrow">
+          <button class="act" onclick="feed('random')">Feed random</button>
+          <button class="act gray" onclick="feed('normal')">Normal</button>
+          <button class="act amber" onclick="feed('anomaly')">Anomaly</button>
+        </div>
+        <div class="btnrow">
+          <button class="act" id="autoBtn" onclick="toggleAuto()">▶ Auto-stream</button>
+        </div>
+        <h3 style="margin-top:14px">Security (try it)</h3>
+        <table class="kv"><tr><td>Role</td><td>
+          <select id="role" style="width:130px"><option value="doctor" selected>doctor</option><option value="nurse">nurse</option><option value="clerk">clerk</option></select></td></tr>
+          <tr><td>Tamper token</td><td><input type="checkbox" id="tamper" style="width:auto"></td></tr></table>
+        <div class="note">doctor → 200 · clerk/nurse → 403 · tampered → 401</div>
+      </div>
+      <div class="card">
+        <h3>Incoming record</h3>
+        <table class="kv" id="recTbl"><tr><td colspan="2" style="text-align:center;color:var(--mut)">— feed a record —</td></tr></table>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <h3>2 · Middleware pipeline (measured live)</h3>
+        <div id="banner" class="banner" style="background:#f1f5f9;color:var(--mut)">waiting…</div>
+        <div id="steps"></div>
+        <div class="statrow">
+          <div class="big" id="totMs">–<small>end-to-end latency (ms)</small></div>
+          <div class="big" id="dpk">–<small>dose per kg (derived feature)</small></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>3 · Model anomaly scores (this record)</h3>
+        <div id="scores"></div>
+        <div class="truth" id="truth"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <h3>4 · Running accuracy (this session)</h3>
+        <table class="runtbl" id="runTbl">
+          <tr><th>Model</th><th>TP</th><th>FP</th><th>FN</th><th>Prec</th><th>Rec</th><th>F1</th></tr>
+        </table>
+        <div class="note">Computed live against ground-truth labels as records stream.</div>
+      </div>
+      <div class="card">
+        <h3>Latency history (end-to-end, ms)</h3>
+        <canvas id="latCanvas" height="110"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= WHY ================= -->
+<section id="tab-why" style="display:none">
+  <h2 class="sec">Why XGBoost is the right choice for real-time clinical anomaly detection</h2>
+  <div class="grid cols-2">
+    <div class="card"><h3>Predictive performance (held-out test, n = 6,000)</h3><div id="whyMetrics"></div></div>
+    <div class="card"><h3>End-to-end API latency (mean ms · benchmark, n = 300)</h3><div id="whyLat"></div></div>
+    <div class="card"><h3>Detection by anomaly class — the contextual gap</h3>
+      <table class="runtbl" id="whyType"><tr><th>Error class</th><th>Isolation Forest</th><th>XGBoost</th></tr></table>
+      <div class="note">Contextual errors (age–dose mismatch) are invisible to unsupervised isolation — every field is individually plausible.</div></div>
+    <div class="verdict"><h3>Verdict</h3>
+      <ul>
+        <li><b>Accuracy:</b> F1 0.919, AUC-ROC 0.982 — best overall balance; RF trades 12 pp of recall for its precision.</li>
+        <li><b>Speed:</b> 1.7 ms inference, 9.6 ms full request — 29× faster than Random Forest per record.</li>
+        <li><b>Contextual power:</b> 79% of age–dose mismatches caught vs 5.6% for Isolation Forest.</li>
+        <li><b>Operations:</b> trains in 0.6 s → per-facility retraining is trivial on edge hardware.</li>
+      </ul></div>
+  </div>
+</section>
+
+<!-- ================= CUSTOM ================= -->
+<section id="tab-custom" style="display:none">
+  <h2 class="sec">Enter a record yourself — e.g., a pediatric patient with an adult dose</h2>
+  <div class="grid cols-2">
+    <div class="card">
+      <form class="custom" onsubmit="return sendCustom(event)">
+        <div><label>Age (years)</label><input id="c_age" type="number" value="6" step="1"></div>
+        <div><label>Sex</label><select id="c_sex"><option>F</option><option>M</option></select></div>
+        <div><label>Weight (kg)</label><input id="c_wt" type="number" value="20" step="0.1"></div>
+        <div><label>Diagnosis</label><select id="c_dx">
+          <option selected>Typhoid Fever</option><option>Acute URTI</option><option>Pneumonia</option><option>Fever (Viral)</option>
+          <option>Asthma</option><option>Gastritis</option>
+          <option>Hypertension</option><option>Type 2 Diabetes</option><option>UTI</option><option>Hypothyroidism</option></select></div>
+        <div><label>Drug dose (mg)</label><input id="c_dose" type="number" value="2000" step="0.1"></div>
+        <div><label>Heart rate</label><input id="c_hr" type="number" value="105"></div>
+        <div><label>Resp. rate</label><input id="c_rr" type="number" value="24"></div>
+        <div><label>Systolic BP</label><input id="c_sbp" type="number" value="98"></div>
+        <div><label>Diastolic BP</label><input id="c_dbp" type="number" value="63"></div>
+        <div><label>Temp (°C)</label><input id="c_temp" type="number" value="37.2" step="0.1"></div>
+        <div><label>SpO2 (%)</label><input id="c_spo2" type="number" value="98"></div>
+        <div style="display:flex;align-items:flex-end"><button class="act" style="width:100%">Submit to middleware</button></div>
+      </form>
+      <div class="note">Preset: a 6-year-old, 20 kg, prescribed 2,000 mg ceftriaxone (typhoid) — a full adult dose. Every field passes a range check; only the combination is wrong. Then set age to 30 and watch it pass.</div>
+    </div>
+    <div class="card">
+      <h3>Middleware response</h3>
+      <div id="cBanner" class="banner" style="background:#f1f5f9;color:var(--mut)">waiting…</div>
+      <div id="cScores"></div>
+      <div class="statrow">
+        <div class="big" id="cMs">–<small>end-to-end latency (ms)</small></div>
+        <div class="big" id="cDpk">–<small>dose per kg</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const KEYS=["iso","ocsvm","rf","xgb"];
+const NAMES={iso:"Isolation Forest",ocsvm:"One-Class SVM",rf:"Random Forest",xgb:"XGBoost"};
+const COLORS={iso:"#94a3b8",ocsvm:"#f0a868",rf:"#7fb069",xgb:"#028090"};
+let run={},count=0,latHist=[],auto=null;
+KEYS.forEach(k=>run[k]={tp:0,fp:0,fn:0,tn:0});
+
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  ["live","why","custom"].forEach(t=>$("tab-"+t).style.display=(b.dataset.tab===t?"":"none"));
+  if(b.dataset.tab==="why")loadWhy();
+});
+
+async function getToken(){
+  const r=await fetch(`/api/token?role=${$("role").value}&tamper=${$("tamper").checked?1:0}`);
+  return (await r.json()).token;
+}
+
+function showRecord(rec){
+  const rows=[["Encounter",rec.encounter_id||"custom"],["Age",rec.age+" y"],["Sex",rec.sex],
+    ["Weight",rec.weight_kg+" kg"],["Diagnosis",rec.diagnosis],["Drug",rec.drug||"—"],
+    ["Dose",rec.dose_mg+" mg"],["HR / RR",rec.heart_rate+" / "+rec.resp_rate],
+    ["BP",rec.sbp+"/"+rec.dbp],["Temp / SpO2",rec.temp_c+" °C / "+rec.spo2+"%"]];
+  $("recTbl").innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("");
+}
+
+function scoreBars(scores,el){
+  el.innerHTML=KEYS.map(k=>{
+    const s=scores[k];
+    const pct=k==="rf"||k==="xgb"?Math.round(s.score*100):Math.min(100,Math.max(2,Math.round((s.score+0.15)*250)));
+    return `<div class="mbar"><div class="lbl"><span>${s.model}
+      <span class="pill ${s.flagged?"bad":"ok"}">${s.flagged?"FLAG":"pass"}</span></span>
+      <span>${s.score.toFixed(3)} · ${s.infer_ms} ms</span></div>
+      <div class="track"><div class="fill" style="width:${pct}%;background:${s.flagged?"#c0392b":COLORS[k]}"></div></div></div>`;
+  }).join("");
+}
+
+function updateRunning(scores,truth){
+  if(truth.is_anomaly<0)return;
+  KEYS.forEach(k=>{
+    const f=scores[k].flagged,a=truth.is_anomaly===1;
+    if(f&&a)run[k].tp++; else if(f&&!a)run[k].fp++;
+    else if(!f&&a)run[k].fn++; else run[k].tn++;
+  });
+  let bestF1=-1,best=null;
+  const rows=KEYS.map(k=>{
+    const r=run[k],p=r.tp+r.fp?r.tp/(r.tp+r.fp):0,rc=r.tp+r.fn?r.tp/(r.tp+r.fn):0;
+    const f1=p+rc?2*p*rc/(p+rc):0;
+    if(f1>bestF1){bestF1=f1;best=k}
+    return {k,r,p,rc,f1};
+  });
+  $("runTbl").innerHTML=`<tr><th>Model</th><th>TP</th><th>FP</th><th>FN</th><th>Prec</th><th>Rec</th><th>F1</th></tr>`+
+    rows.map(x=>`<tr class="${x.k===best?"best":""}"><td>${NAMES[x.k]}</td><td>${x.r.tp}</td><td>${x.r.fp}</td>
+      <td>${x.r.fn}</td><td>${x.p.toFixed(2)}</td><td>${x.rc.toFixed(2)}</td><td><b>${x.f1.toFixed(2)}</b></td></tr>`).join("");
+}
+
+function drawLat(){
+  const c=$("latCanvas"),ctx=c.getContext("2d");
+  c.width=c.clientWidth;const w=c.width,h=c.height;
+  ctx.clearRect(0,0,w,h);
+  const data=latHist.slice(-60),max=Math.max(30,...data);
+  ctx.strokeStyle="#e2e8f0";ctx.beginPath();ctx.moveTo(0,h-1);ctx.lineTo(w,h-1);ctx.stroke();
+  const bw=w/60;
+  data.forEach((v,i)=>{const bh=(v/max)*(h-18);
+    ctx.fillStyle=v>100?"#c0392b":"#028090";
+    ctx.fillRect(i*bw,h-bh,bw-1.5,bh);});
+  ctx.fillStyle="#64748b";ctx.font="10px sans-serif";
+  ctx.fillText(`max ${Math.max(0,...data).toFixed(1)} ms · avg ${(data.reduce((a,b)=>a+b,0)/(data.length||1)).toFixed(1)} ms`,4,10);
+}
+
+async function feed(kind){
+  const rec=await (await fetch(`/api/next_record?kind=${kind}`)).json();
+  showRecord(rec);
+  const token=await getToken();
+  const res=await fetch("/api/encounter",{method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+    body:JSON.stringify({record:rec})});
+  if(!res.ok){
+    const e=await res.json();
+    $("banner").className="banner err";
+    $("banner").textContent=`✖ HTTP ${res.status} — ${e.detail} (rejected before ML ran)`;
+    $("steps").innerHTML="";$("scores").innerHTML="";$("truth").textContent="";
+    return;
+  }
+  const d=await res.json();
+  count++;$("reqCount").firstChild.textContent=count;
+  $("banner").className="banner "+(d.flagged?"bad":"ok");
+  $("banner").textContent=(d.flagged?"⚠ ":"✔ ")+d.decision+" (XGBoost decision)";
+  $("steps").innerHTML=d.steps.map(s=>`<div class="step"><span>✔ ${s.step}</span><span class="ms">${s.ms} ms</span></div>`).join("")
+    +`<div class="step"><span>✔ ML inference — 4 models scored</span><span class="ms">${d.scores.xgb.infer_ms} ms (XGB)</span></div>`;
+  $("totMs").firstChild.textContent=d.total_ms;
+  $("dpk").firstChild.textContent=d.derived.dose_per_kg;
+  scoreBars(d.scores,$("scores"));
+  const t=d.truth;
+  $("truth").innerHTML=t.is_anomaly<0?"":`Ground truth: ${t.is_anomaly===1?
+    `<b style="color:#c0392b">ANOMALY — ${t.anomaly_type.replaceAll("_"," ")}</b>`:"<b style='color:#2e7d32'>normal record</b>"}`;
+  updateRunning(d.scores,t);
+  latHist.push(d.total_ms);drawLat();
+}
+
+function toggleAuto(){
+  if(auto){clearInterval(auto);auto=null;$("autoBtn").textContent="▶ Auto-stream";return}
+  $("autoBtn").textContent="⏸ Stop";
+  auto=setInterval(()=>feed(Math.random()<0.25?"anomaly":"normal"),1300);
+}
+
+async function loadWhy(){
+  const d=await (await fetch("/api/summary")).json();
+  const order=["Isolation Forest","One-Class SVM","Random Forest","XGBoost"];
+  const colr={"Isolation Forest":"#94a3b8","One-Class SVM":"#f0a868","Random Forest":"#7fb069","XGBoost":"#028090"};
+  $("whyMetrics").innerHTML=["f1","auc_roc","precision","recall"].map(met=>{
+    const lbl={f1:"F1-score",auc_roc:"AUC-ROC",precision:"Precision",recall:"Recall"}[met];
+    return `<div style="font-size:12px;color:#64748b;margin:8px 0 4px">${lbl}</div>`+
+      order.map(m=>{const v=d.metrics[m][met];
+        return `<div class="mbar"><div class="lbl"><span>${m}</span><span>${v.toFixed(3)}</span></div>
+        <div class="track"><div class="fill" style="width:${v*100}%;background:${colr[m]}"></div></div></div>`}).join("");
+  }).join("");
+  const lo=["Baseline (JWT only, no ML)","One-Class SVM","XGBoost","Isolation Forest","Random Forest"];
+  const lmax=Math.max(...lo.map(k=>d.latency[k].mean));
+  $("whyLat").innerHTML=lo.map(k=>{const v=d.latency[k];
+    return `<div class="mbar"><div class="lbl"><span>${k}</span><span>${v.mean} ms (p95 ${v.p95})</span></div>
+    <div class="track"><div class="fill" style="width:${Math.max(3,v.mean/lmax*100)}%;background:${k.includes("XGB")?"#028090":"#94a3b8"}"></div></div></div>`;}).join("")
+    +`<div class="note">All far below the 100 ms seamless-UX threshold and 250 ms ceiling. Security rejections: 401/403 in ${d.security.rejection_latency_ms_mean.toFixed(1)} ms.</div>`;
+  const nice={age_dose_mismatch:"Age–dose mismatch",age_vital_mismatch:"Age–vital mismatch",
+    unit_error_weight:"Weight unit error",extreme_dose:"Decimal dose error",
+    impossible_vitals:"Impossible vitals",demographic_error:"Demographic error"};
+  $("whyType").innerHTML=`<tr><th>Error class</th><th>Isolation Forest</th><th>XGBoost</th></tr>`+
+    Object.entries(d.per_type).map(([k,v])=>`<tr><td>${nice[k]||k}</td>
+      <td style="color:${v.iforest<0.5?"#c0392b":"#1e293b"}">${(v.iforest*100).toFixed(1)}%</td>
+      <td style="color:#028090"><b>${(v.xgboost*100).toFixed(1)}%</b></td></tr>`).join("");
+}
+
+async function sendCustom(ev){
+  ev.preventDefault();
+  const rec={age:+$("c_age").value,sex:$("c_sex").value,weight_kg:+$("c_wt").value,
+    heart_rate:+$("c_hr").value,resp_rate:+$("c_rr").value,sbp:+$("c_sbp").value,
+    dbp:+$("c_dbp").value,temp_c:+$("c_temp").value,spo2:+$("c_spo2").value,
+    diagnosis:$("c_dx").value,dose_mg:+$("c_dose").value,consult_min:10,is_anomaly:-1};
+  const token=await (await fetch("/api/token?role=doctor")).json();
+  const res=await fetch("/api/encounter",{method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+token.token},
+    body:JSON.stringify({record:rec})});
+  const d=await res.json();
+  $("cBanner").className="banner "+(d.flagged?"bad":"ok");
+  $("cBanner").textContent=(d.flagged?"⚠ ":"✔ ")+d.decision;
+  scoreBars(d.scores,$("cScores"));
+  $("cMs").firstChild.textContent=d.total_ms;
+  $("cDpk").firstChild.textContent=d.derived.dose_per_kg;
+  return false;
+}
+</script>
+</body>
+</html>
