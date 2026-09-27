@@ -19,10 +19,10 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-SECRET = "thesis-demo-secret"
+SECRET = os.getenv("JWT_SECRET", "local-development-secret")
 ALGO = "HS256"
 ROLES = {"doctor": ["write_encounter"], "nurse": ["write_vitals"], "clerk": []}
-
+app = FastAPI(title="EMR Anomaly Detection — Thesis Demo")
 # ---------------- load artifacts ----------------
 models = {}
 for nm in ["iso", "ocsvm", "rf", "xgb", "imputer", "scaler"]:
